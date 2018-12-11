@@ -114,9 +114,7 @@ class Model(models.ResNet):
 
             metadata_json = json.dumps(metadata)
 
-            print(metadata_json)
-            f.write(metadata_json)
-            f.write("\n")
+            print(metadata_json, file=f)
 
     def restore_model_including_metadata(self):
         with open(self.filename_metadata, mode="r") as f:
@@ -208,7 +206,7 @@ class Model(models.ResNet):
 
                 epoch_loss = running_loss / self.dataset_sizes[phase]
                 print(epoch_loss, file=logger_file,
-                      end=("," 1if phase == "training" else "\n"))
+                      end=("," if phase == "training" else "\n"))
                 if phase == "validation":
                     logger_file.flush()
 
@@ -216,8 +214,8 @@ class Model(models.ResNet):
                     phase, epoch_loss**.5))
 
                 # deep copy the model
-                if (phase == "validation") and \
-                        (self.best_validation_loss > epoch_loss):
+                if ((phase == "validation") and
+                        (epoch_loss < self.best_validation_loss)):
                     self.best_validation_loss = epoch_loss
                     best_model_wts = copy.deepcopy(self.state_dict())
                     torch.save(best_model_wts, self.filename_weights)
@@ -314,8 +312,11 @@ def create_pytorch_directory_structure(
                                )
 
         if verbose:
-            print("Adding {} symlinks for {} directory".format(
-                        len(need_to_make_ids), phase),
+            num_symlinks_needed = len(need_to_make_ids)
+            print("Adding {} symlink{} for {} directory".format(
+                        num_symlinks_needed,
+                        "" if num_symlinks_needed == 1 else "s",
+                        phase),
                   flush=True)
 
         for i, galaxy_id in enumerate(need_to_make_ids):
