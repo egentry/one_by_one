@@ -9,7 +9,8 @@ from keras.layers.core import Dense, Flatten
 from keras.layers.convolutional import Conv2D
 from keras.optimizers import Adam
 
-def build_model(input_shape, with_one_by_one=True, 
+
+def build_model(input_shape, with_one_by_one=True,
                 keep_training_pretrained=False,
                 pretrained_class=vgg19.VGG19,
                 num_dense=64,
@@ -18,14 +19,15 @@ def build_model(input_shape, with_one_by_one=True,
     model = Sequential()
 
     # # # 1x1 convolution to make sure we only have 3 channels
-    n_channels_for_pretrained=3
-    one_by_one = Conv2D(n_channels_for_pretrained, 1, 
-                        padding='same',
+    n_channels_for_pretrained = 3
+    one_by_one = Conv2D(n_channels_for_pretrained, 1,
+                        padding="same",
                         input_shape=input_shape)
     one_by_one.trainable = with_one_by_one
     model.add(one_by_one)
 
-    pretrained_input_shape = tuple([n_channels_for_pretrained, *input_shape[1:]])
+    pretrained_input_shape = tuple([n_channels_for_pretrained,
+                                    *input_shape[1:]])
     pretrained_layers = pretrained_class(
         include_top=False,
         input_shape=pretrained_input_shape
@@ -44,20 +46,21 @@ def build_model(input_shape, with_one_by_one=True,
 
     return model
 
+
 def compile_model(model, logger_filename,
-                  adam_lr= 0.001,
+                  adam_lr=0.001,
                   ):
 
     learning_rate = adam_lr
 
     adam = Adam(lr=learning_rate)
 
-    model.compile(loss='mean_squared_error', 
+    model.compile(loss="mean_squared_error",
                   optimizer=adam,
-                 )
+                  )
 
     # can only manually set weights _after_ compiling
-    one_by_one_weights = np.zeros((1,1,5,3))
+    one_by_one_weights = np.zeros((1, 1, 5, 3))
     for i in range(3):
         # by default, irg should be RGB
         one_by_one_weights[0, 0, 3-i, i] = 1.

@@ -22,29 +22,28 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # # # CLASSES
 
 class Model(models.ResNet):
-    def __init__(self, 
+    def __init__(self,
                  data_loaders,
                  device=device,
                  continue_training=True,
                  with_one_by_one=False,
                  **kwargs):
         super(Model, self).__init__(models.resnet.BasicBlock,
-                                   [3, 4, 6, 3],
-                                   **kwargs)
+                                    [3, 4, 6, 3],
+                                    **kwargs)
         import torch.utils.model_zoo as model_zoo
 
-        
         if not continue_training:
             self.load_state_dict(model_zoo.load_url(
-                models.resnet.model_urls['resnet34']
+                models.resnet.model_urls["resnet34"]
             ))
 
         # # Change the necessary layer
         # # (must be done _after_ loading pretrained weights)
         if with_one_by_one:
             raise NotImplementedError()
-        
-        self.avgpool = nn.AdaptiveAvgPool2d((1,1), )
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1),)
 
         num_ftrs = self.fc.in_features
         self.fc = nn.Linear(num_ftrs, 1,)
@@ -54,7 +53,7 @@ class Model(models.ResNet):
         self.filename_weights = "data/CNN/torch.vanilla.weights"
         self.filename_metadata = "data/CNN/torch.vanilla.metadata.json"
         self.filename_logger = "pytorch.vanilla.log"
-        
+
         self.data_loaders = data_loaders
         self.dataset_sizes = {
             key: len(self.data_loaders[key].dataset.samples)
@@ -67,7 +66,7 @@ class Model(models.ResNet):
         else:
             self.epoch_counter = -1
             self.best_validation_loss = np.inf
-            
+
         if not continue_training:
             if os.path.exists(self.filename_logger):
                 filename_logger_tmp = self.filename_logger + ".old"
@@ -76,8 +75,7 @@ class Model(models.ResNet):
         if not os.path.exists(self.filename_logger):
             with open(self.filename_logger, mode="w") as logger_file:
                 print("epoch,loss,val_loss", file=logger_file)
-        
-            
+
     def forward(self, x, verbose=False):
         # like the default `forward`, but just more verbose
         x = self.conv1(x)
@@ -86,28 +84,32 @@ class Model(models.ResNet):
         x = self.maxpool(x)
 
         x = self.layer1(x)
-        if verbose: print("after layer 1: ", x.shape)
+        if verbose:
+            print("after layer 1: ", x.shape)
 
         x = self.layer2(x)
-        if verbose: print("after layer 2: ", x.shape)
+        if verbose:
+            print("after layer 2: ", x.shape)
 
         x = self.layer3(x)
-        if verbose: print("after layer 3: ", x.shape)
+        if verbose:
+            print("after layer 3: ", x.shape)
 
         x = self.layer4(x)
-        if verbose: print("after layer 4: ", x.shape)
+        if verbose:
+            print("after layer 4: ", x.shape)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
         return x
-    
+
     def save_model_metadata(self):
         with open(self.filename_metadata, mode="w") as f:
             metadata = {
-                "epoch_counter":self.epoch_counter,
-                "best_validation_loss":self.best_validation_loss,
+                "epoch_counter": self.epoch_counter,
+                "best_validation_loss": self.best_validation_loss,
             }
 
             metadata_json = json.dumps(metadata)
@@ -115,8 +117,7 @@ class Model(models.ResNet):
             print(metadata_json)
             f.write(metadata_json)
             f.write("\n")
-            
-        
+
     def restore_model_including_metadata(self):
         with open(self.filename_metadata, mode="r") as f:
             metadata = json.loads(f.read())
@@ -125,14 +126,13 @@ class Model(models.ResNet):
         self.best_validation_loss = metadata["best_validation_loss"]
 
         self.load_state_dict(torch.load(self.filename_weights))
-        
+
         return self
 
-    
     def train_model(self, criterion, optimizer, scheduler,
                     num_epochs=10,
                     verbose=False
-                   ):
+                    ):
         """
         criterion: the loss function; callable(prediction, targets)
         optimizer: pytorch optimizer object
@@ -149,10 +149,10 @@ class Model(models.ResNet):
         for epoch in range(self.epoch_counter+1, num_epochs):
             self.epoch_counter = epoch
             print(epoch, file=logger_file, end=",")
-            
+
             # Each epoch has a training and validation phase
-            for phase in ['training', 'validation']:
-                if phase == 'training':
+            for phase in ["training", "validation"]:
+                if phase == "training":
                     scheduler.step(epoch=epoch % scheduler.T_max)
                     self.train()  # Set model to training mode
                 else:
@@ -168,19 +168,19 @@ class Model(models.ResNet):
                     targets = targets.reshape((-1, 1))
                     targets = targets.to(device=self.device, dtype=torch.float)
 
-
                     # zero the parameter gradients
                     optimizer.zero_grad()
 
                     # forward
                     # track history if only in train
-                    with torch.set_grad_enabled(phase == 'training'):
+                    with torch.set_grad_enabled(phase == "training"):
                         outputs = self(inputs)
-                        if verbose: print("outputs shape: ", outputs.shape)
+                        if verbose:
+                            print("outputs shape: ", outputs.shape)
                         loss = criterion(outputs, targets)
 
                         # backward + optimize only if in training phase
-                        if phase == 'training':
+                        if phase == "training":
                             loss.backward()
                             optimizer.step()
 
@@ -188,47 +188,48 @@ class Model(models.ResNet):
                     running_loss += loss.item() * inputs.size(0)
 
                     # update printed stats
-                    if phase == 'training':
-                        print("Epoch: [{:2d}] [batch: {:4d}/{:4d}] time: {:4.1f} s, batch training loss: {:.8f} dex".format(
-                                epoch,
-                                idx+1, 
-                                num_batches, 
-                                time.time() - since, 
-                                (loss.item() / inputs.size(0))**.5,
+                    if phase == "training":
+                        print(("Epoch: [{:2d}] "
+                               "[batch: {:4d}/{:4d}] "
+                               "time: {:4.1f} s, "
+                               "batch training loss: {:.8f} dex").format(
+                                    epoch,
+                                    idx+1,
+                                    num_batches,
+                                    time.time() - since,
+                                    (loss.item() / inputs.size(0))**.5,
                                 ),
                               end="",
-                             )
+                              )
                         if idx != num_batches-1:
                             print("\r", end="")
                         else:
                             print("")
 
-
                 epoch_loss = running_loss / self.dataset_sizes[phase]
                 print(epoch_loss, file=logger_file,
-                     end="," if phase=="training" else "\n")
-                if phase=="validation":
+                      end=("," 1if phase == "training" else "\n"))
+                if phase == "validation":
                     logger_file.flush()
 
-                print('{:<10} loss: {:.4f} dex'.format(
+                print("{:<10} loss: {:.4f} dex".format(
                     phase, epoch_loss**.5))
 
-
                 # deep copy the model
-                if (phase == 'validation') and (self.best_validation_loss > epoch_loss):
+                if (phase == "validation") and \
+                        (self.best_validation_loss > epoch_loss):
                     self.best_validation_loss = epoch_loss
                     best_model_wts = copy.deepcopy(self.state_dict())
                     torch.save(best_model_wts, self.filename_weights)
                     self.save_model_metadata()
 
-
             print()
 
         time_elapsed = time.time() - since
         print("-" * 20)
-        print('Training completed in {:.0f}m {:.0f}s'.format(
+        print("Training completed in {:.0f}m {:.0f}s".format(
             time_elapsed // 60, time_elapsed % 60))
-        print('Best val loss: {:4f} dex'.format(
+        print("Best val loss: {:4f} dex".format(
             self.best_validation_loss**.5))
 
         # load best model weights
@@ -238,13 +239,12 @@ class Model(models.ResNet):
         logger_file.close()
         return model
 
-    
     def apply(self, phase="testing"):
         self.eval()   # Set model to evaluate mode
 
         # Iterate over data.
         num_batches = len(self.data_loaders[phase])
-        
+
         targets_list = [None]*num_batches
         outputs_list = [None]*num_batches
         for idx, data in enumerate(self.data_loaders[phase]):
@@ -256,12 +256,11 @@ class Model(models.ResNet):
             with torch.set_grad_enabled(False):
                 outputs = self(inputs)
             outputs_list[idx] = outputs.reshape((-1))
-          
+
         return np.hstack(targets_list), np.hstack(outputs_list)
 
-
-
 # # # FUNCTIONS
+
 
 def create_pytorch_directory_structure(
     ids_with_images,
@@ -279,7 +278,7 @@ def create_pytorch_directory_structure(
 
     source_format = os.path.join(
         os.getcwd(),
-        data_dir, 
+        data_dir,
         "images",
         "processed",
         "{galaxy_id}.npy")
@@ -288,7 +287,7 @@ def create_pytorch_directory_structure(
     target_format = os.path.join(target_dir_format, "{galaxy_id}.npy")
 
     phase_ids_with_images = {
-        "validation": ids_with_images[np.isin(ids_with_images, 
+        "validation": ids_with_images[np.isin(ids_with_images,
                                               validation_ids)],
         "training": ids_with_images[np.isin(ids_with_images,
                                             training_ids)],
@@ -310,45 +309,49 @@ def create_pytorch_directory_structure(
 
         if not (already_existing_ids <= tmp_ids_set):
             # note: not (a <= b) cannot be swapped with (a>b)!
-            raise RuntimeError("The wrong galaxy ids exist in phase directory `{}`".format(
-                phase
-            ))
+            raise RuntimeError("The wrong galaxy ids exist in phase directory "
+                               "`{}`".format(phase)
+                               )
 
         if verbose:
-            print("Adding {} symlinks for {} directory".format(len(need_to_make_ids), phase),
+            print("Adding {} symlinks for {} directory".format(
+                        len(need_to_make_ids), phase),
                   flush=True)
 
         for i, galaxy_id in enumerate(need_to_make_ids):
-            target_dir = target_dir_format.format(galaxy_id=galaxy_id, 
+            target_dir = target_dir_format.format(galaxy_id=galaxy_id,
                                                   phase=phase)
             if not os.path.isdir(target_dir):
                 os.makedirs(target_dir)
 
-            target_filename = target_format.format(galaxy_id=galaxy_id, 
+            target_filename = target_format.format(galaxy_id=galaxy_id,
                                                    phase=phase)
             os.symlink(
-                source_format.format(galaxy_id=galaxy_id),    
+                source_format.format(galaxy_id=galaxy_id),
                 target_filename,
             )
 
+
 def loader(path):
     """expects that `path` points to a `.npy` file"""
-    img =  np.load(path)
-    img = img[:3]
+    img = np.load(path)
+    img = img[1:4]
     if np.random.choice((True, False)):
-        img = img[:,:,::-1]
+        img = img[:, :, ::-1]
         img = np.array(img)
     if np.random.choice((True, False)):
-        img = img[:,::-1,:]
+        img = img[:, ::-1, :]
         img = np.array(img)
-    
-    img = img.transpose((1, 2, 0)) # annoying, but pytorch is going to rotate it back
+
+    img = img.transpose((1, 2, 0))  # pytorch is going to rotate it back
     return img
 
+
 def target_transform(target, classes, df_Y):
-    """transforms `target` from a class_index to the metallicity (regression target)"""
+    """transforms `target` from a class_index float regression target"""
     target = int(classes[target])
     return df_Y.loc[target].target
+
 
 def create_data_loaders(
     df_Y,
@@ -361,26 +364,26 @@ def create_data_loaders(
     # Data augmentation and normalization
     data_transforms = {
         "training": transforms.Compose([
-    #         transforms.Resize(256),
-    #         transforms.CenterCrop(224),
-    #         transforms.RandomHorizontalFlip(), # requires a PIL-able image
-    #         transforms.RandomVerticalFlip(), # requires a PIL-able image
+            # transforms.Resize(256),
+            # transforms.CenterCrop(224),
+            # transforms.RandomHorizontalFlip(), # requires a PIL-able image
+            # transforms.RandomVerticalFlip(), # requires a PIL-able image
             transforms.ToTensor(),
         ]),
     }
     data_transforms["validation"] = data_transforms["training"]
-    data_transforms["testing"]    = data_transforms["training"]
-    
-    
+    data_transforms["testing"] = data_transforms["training"]
+
     extensions = ["npy"]
 
     print("Creating `DatasetFolder`s", flush=True)
-    image_datasets = {key: datasets.DatasetFolder(os.path.join(temp_directory, key),
+    image_datasets = {key: datasets.DatasetFolder(os.path.join(temp_directory,
+                                                               key),
                                                   loader,
                                                   extensions,
                                                   data_transforms[key],
-    #                                               target_transform=target_transform
-                                                 )
+                                                  # target_transform=target_transform
+                                                  )
                       for key in data_transforms}
 
     print("Fixing `DatasetFolder.samples`", flush=True)
@@ -392,28 +395,25 @@ def create_data_loaders(
                                 target_transform(sample[1],
                                                  image_datasets[key].classes,
                                                  df_Y),
-                               )
+                                )
         image_datasets[key].samples = new_samples
 
     print("Creating `DataLoader`s", flush=True)
-    data_loaders = {key: torch.utils.data.DataLoader(image_datasets[key], 
+    data_loaders = {key: torch.utils.data.DataLoader(image_datasets[key],
                                                      batch_size=batch_size,
-                                                     shuffle=shuffle, 
+                                                     shuffle=shuffle,
                                                      num_workers=num_workers)
-                   for key in image_datasets}
-
-
+                    for key in image_datasets}
 
     if verbose:
-        dataset_sizes = {key: len(image_datasets[key]) 
+        dataset_sizes = {key: len(image_datasets[key])
                          for key in image_datasets}
-        
+
         print("dataset_sizes: ", dataset_sizes)
         ds = image_datasets["training"]
         print("len training dataset: ", len(ds))
         sample = ds.__getitem__(1)
-        print("sample input data shape: ", sample[0].shape) # image
+        print("sample input data shape: ", sample[0].shape)  # image
         print("sample target: ", sample[1])
-    
-    return data_loaders
 
+    return data_loaders

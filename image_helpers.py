@@ -12,8 +12,11 @@ bands = ("u", "g", "r", "i", "z")
 
 
 def get_raw_filename(run, camcol, field, band, raw_data_dir=raw_data_dir):
-    output_filename = os.path.join(raw_data_dir, 
-                                   "{run}-{camcol}-{field}-{band}.fits.bz2".format(
+    output_filename = os.path.join(raw_data_dir,
+                                   ("{run}-"
+                                    "{camcol}-"
+                                    "{field}-"
+                                    "{band}.fits.bz2").format(
                                         run=run,
                                         camcol=camcol,
                                         field=field,
@@ -38,12 +41,15 @@ def get_cutout_filename(galaxy_id, band, data_dir=data_dir):
 
 
 def download_image(run, camcol, field, band, output_filename, overwrite=False):
-    if (raw_data_dir in output_filename) and (not os.path.exists(raw_data_dir)):
+    if (raw_data_dir in output_filename) and \
+            (not os.path.exists(raw_data_dir)):
         raise OSError("dir not found; is drive mounted? (dir={})".format(
             raw_data_dir)
         )
 
-    url_base = "http://data.sdss.org/sas/dr14/eboss/photoObj/frames/301/{run}/{camcol}/frame-{band}-{run:>06d}-{camcol}-{field:>04d}.fits.bz2"
+    url_base = ("http://data.sdss.org/sas/dr14/eboss/photoObj/frames/301/"
+                "{run}/{camcol}/frame-{band}-{run:>06d}-{camcol}-{field:>04d}"
+                ".fits.bz2")
 
     if (not os.path.exists(output_filename)) or overwrite:
         try:
@@ -104,7 +110,9 @@ def get_cutout(hdu, ra, dec, size_arcsec=38):
 
     if (not cutoff) and (hdu.data.shape != (cutout_size, cutout_size)):
         print(old_header["RUN"], old_header["CAMCOL"], old_header["FILTER"])
-        raise RuntimeError("image shape ({0}) does not match desired dimensions (({1},{1})".format(
+        raise RuntimeError(("image shape ({0}) "
+                            "does not match desired dimensions"
+                            "(({1},{1})").format(
             hdu.data.shape, cutout_size))
 
     return hdu
