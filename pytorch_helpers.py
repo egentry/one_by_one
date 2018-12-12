@@ -251,6 +251,7 @@ class Model(models.ResNet):
         torch.save(self.state_dict(), self.filename_weights)
         self.save_model_metadata()
         logger_file.close()
+        logger_batch_file.close()
         return model
 
     def apply(self, phase="testing"):
