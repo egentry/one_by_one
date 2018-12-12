@@ -53,6 +53,8 @@ class Model(models.ResNet):
         self.filename_weights = "data/CNN/torch.vanilla.weights"
         self.filename_metadata = "data/CNN/torch.vanilla.metadata.json"
         self.filename_logger = "pytorch.vanilla.log"
+        self.filename_batch_logger = "pytorch.vanilla.bybatch.log"
+
 
         self.data_loaders = data_loaders
         self.dataset_sizes = {
@@ -72,9 +74,17 @@ class Model(models.ResNet):
                 filename_logger_tmp = self.filename_logger + ".old"
                 os.rename(self.filename_logger, filename_logger_tmp)
 
+            if os.path.exists(self.filename_batch_logger):
+                filename_batch_logger_tmp = self.filename_batch_logger + ".old"
+                os.rename(self.filename_batch_logger, filename_batch_logger_tmp)
+
         if not os.path.exists(self.filename_logger):
             with open(self.filename_logger, mode="w") as logger_file:
                 print("epoch,loss,val_loss", file=logger_file)
+
+        if not os.path.exists(self.filename_batch_logger):
+            with open(self.filename_batch_logger, mode="w") as logger_batch_file:
+                print("epoch,batch,epoch_frac,loss", file=logger_batch_file)
 
     def forward(self, x, verbose=False):
         # like the default `forward`, but just more verbose
@@ -139,6 +149,7 @@ class Model(models.ResNet):
         I guess optimizer already needs to be linked to criterion?
         """
         logger_file = open(self.filename_logger, mode="a")
+        logger_batch_file = open(self.filename_batch_logger, mode="a")
 
         since = time.time()
 
@@ -195,7 +206,7 @@ class Model(models.ResNet):
                                     idx+1,
                                     num_batches,
                                     time.time() - since,
-                                    (loss.item() / inputs.size(0))**.5,
+                                    loss.item()**.5,
                                 ),
                               end="",
                               )
@@ -203,6 +214,11 @@ class Model(models.ResNet):
                             print("\r", end="")
                         else:
                             print("")
+                        print("{},{},{},{}".format(epoch,
+                                                   idx,
+                                                   epoch + (idx/num_batches),
+                                                   loss.item()**.5),
+                              file=logger_batch_file, flush=True)
 
                 epoch_loss = (running_loss / self.dataset_sizes[phase])**.5
                 print(epoch_loss, file=logger_file,
