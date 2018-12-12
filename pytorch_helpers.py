@@ -204,14 +204,14 @@ class Model(models.ResNet):
                         else:
                             print("")
 
-                epoch_loss = running_loss / self.dataset_sizes[phase]
+                epoch_loss = (running_loss / self.dataset_sizes[phase])**.5
                 print(epoch_loss, file=logger_file,
                       end=("," if phase == "training" else "\n"))
                 if phase == "validation":
                     logger_file.flush()
 
                 print("{:<10} loss: {:.4f} dex".format(
-                    phase, epoch_loss**.5))
+                    phase, epoch_loss))
 
                 # deep copy the model
                 if ((phase == "validation") and
@@ -228,7 +228,7 @@ class Model(models.ResNet):
         print("Training completed in {:.0f}m {:.0f}s".format(
             time_elapsed // 60, time_elapsed % 60))
         print("Best val loss: {:4f} dex".format(
-            self.best_validation_loss**.5))
+            self.best_validation_loss))
 
         # load best model weights
         self.load_state_dict(best_model_wts)
