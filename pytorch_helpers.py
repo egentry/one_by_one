@@ -270,6 +270,8 @@ class Model(models.ResNet):
             with torch.set_grad_enabled(False):
                 outputs = self(inputs)
             outputs_list[idx] = outputs.reshape((-1))
+        print("batch: {}/{}".format(idx, num_batches)) # return cursor to next line
+
 
         return np.hstack(targets_list), np.hstack(outputs_list)
 
